@@ -4,9 +4,10 @@ import requests
 import datetime
 import schedule
 import time
+#import RPi.GPIO as GPIO
 
 HALF_POWER_HOURS = 3
-ZERP_POWER_HOURS = 3
+ZERO_POWER_HOURS = 3
 
 class HourPrices:   
 
@@ -15,14 +16,14 @@ class HourPrices:
         self.hour_prices = None
 
         while self.hour_prices == None:
-            self.hour_prices = self.get_hour_prices()
+            self.hour_prices = self.__set_hour_prices()
             # sleep for 1 hour if hour prices are not available
             if self.hour_prices == None:
                 time.sleep(3600)
 
     
     # Get hour prices for today from curl -X GET "https://api.spot-hinta.fi/Today" -H  "accept: application/json"
-    def get_hour_prices(self):
+    def __set_hour_prices(self):
         url = "https://api.spot-hinta.fi/Today"
         response = requests.get(url)
         #check if the response code is ok (200)
@@ -30,7 +31,12 @@ class HourPrices:
             #if response code is not ok (200), print the resulting http error code with description
             print("Error: " + str(response.status_code) + " " + response.text)
             return None
-        return json.loads(response.text)
+        hour_prices = json.loads(response.text)
+        
+        for hour_price in hour_prices:
+            hour_price['Hour'] = datetime.datetime.strptime(hour_price['DateTime'], '%Y-%m-%dT%H:%M:%S%z').hour
+
+        return hour_prices
 
     # Get highest prices for today
     def get_highest_prices(self, number_of_hours_to_get, number_of_hours_to_skip):
@@ -88,46 +94,68 @@ class HeatControl:
     
     def new_day(self):
         self.set_prices_for_today()
-        self.set_heat()
+        # Print half power hours
+        print("Half power hours:")
+        for hour in self.HalfPowerHours:
+            print(str(hour['Hour']) + " " + str(hour['PriceNoTax']))
+        # Print zero power hours
+        print("Zero power hours:")
+        for hour in self.ZeroPowerHours:
+            print(str(hour['Hour']) + " " + str(hour['PriceNoTax']))
+        # Print average price
+        print("Average price: " + str(self.average_price))
+
+        # Print price difference between highest and lowest
+        print("Price difference between highest and lowest: " + str(self.price_difference_between_highest_and_lowest))
+
+        # Print highest prices
+        print("Highest prices:")
+        for hour in self.highest_prices:
+            print(str(hour['Hour']) + " " + str(hour['PriceNoTax']))
+        
+        # Print lowest prices
+        print("Lowest prices:")
+        for hour in self.lowest_prices:
+            print(str(hour['Hour']) + " " + str(hour['PriceNoTax']))
+        
+        # Print hour prices
+        print("Hour prices:")
+        self.hour_prices.sort(key=lambda x: x['Rank'])
+        for hour in self.hour_prices:
+            print(str(hour['Hour']) + " " + str(hour['PriceNoTax']))
+
     
     def set_rasbperry_pi_gpio_pin(pin_number, state):
-        import RPi.GPIO as GPIO
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(pin_number, GPIO.OUT)
         GPIO.output(pin_number, state)
         GPIO.cleanup()
     
     def set_heat_50_percent(self):
-        set_rasbperry_pi_gpio_pin(17, True)
-        set_rasbperry_pi_gpio_pin(27, False)
+        self.set_rasbperry_pi_gpio_pin(17, True)
+        self.set_rasbperry_pi_gpio_pin(27, False)
     
     def set_heat_100_percent(self):
-        set_rasbperry_pi_gpio_pin(17, True)
-        set_rasbperry_pi_gpio_pin(27, True)
+        self.set_rasbperry_pi_gpio_pin(17, True)
+        self.set_rasbperry_pi_gpio_pin(27, True)
 
     def set_heat_on(self):
-        set_rasbperry_pi_gpio_pin(17, False)
-        set_rasbperry_pi_gpio_pin(27, False)
+        self.set_rasbperry_pi_gpio_pin(17, False)
+        self.set_rasbperry_pi_gpio_pin(27, False)
 
     def set_prices_for_today(self):
         hour_prices = HourPrices()
         self.average_price = hour_prices.get_average_price()
-        self.average_price_for_hours = hour_prices.get_average_price_for_hours(3)
-        self.price_difference_between_highest_and_lowest = hour_prices.get_price_difference_between_highest_and_lowest(ZERP_POWER_HOURS + HALF_POWER_HOURS)
+        self.price_difference_between_highest_and_lowest = hour_prices.get_price_difference_between_highest_and_lowest(ZERO_POWER_HOURS + HALF_POWER_HOURS)
         self.hour_prices = hour_prices.hour_prices
 
-        # Tää oli myös aika hieno kohta
-        self.ZeroPowerHours = hour_prices.get_highest_prices(ZERP_POWER_HOURS, 0)
-        self.HalfPowerHours = hour_prices.get_highest_prices(HALF_POWER_HOURS, ZERP_POWER_HOURS)
+        self.ZeroPowerHours = hour_prices.get_highest_prices(ZERO_POWER_HOURS, 0)
+        self.HalfPowerHours = hour_prices.get_highest_prices(HALF_POWER_HOURS, ZERO_POWER_HOURS)
 
     def set_heat(self):
         reset_heat = True
-        # Set heat on 50 % if we are on HalfPowerHours
-        print('Setting heat half power')
+        
         for hour in self.HalfPowerHours:
-            # Parse hour from datetime string
-            hour['Hour'] = datetime.datetime.strptime(hour['DateTime'], '%Y-%m-%dT%H:%M:%S%z').hour
-            print(hour['Hour'])
             if hour['Hour'] == datetime.datetime.now().hour:
                 # self.set_heat_50_percent()
                 print(str( datetime.datetime.now()) + ': Half power')
@@ -135,11 +163,8 @@ class HeatControl:
                 break
         
         # Set heat on 100 % if we are on ZeroPowerHours
-        print('Setting heat 100 %')
+        
         for hour in self.ZeroPowerHours:
-            # Parse hour from datetime string
-            hour['Hour'] = datetime.datetime.strptime(hour['DateTime'], '%Y-%m-%dT%H:%M:%S%z').hour
-            print(hour['Hour'])
             if hour['Hour'] == datetime.datetime.now().hour:
                 # self.set_heat_100_percent()
                 print(str( datetime.datetime.now()) + ': Zero power')  
