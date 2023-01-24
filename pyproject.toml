@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "heatcontrol"
-version = "0.2.4"
+version = "0.4.2"
 description = ""
 authors = ["Rami Rahikkala <rami.rahikkala@gmail.fi>"]
 readme = "README.md"
