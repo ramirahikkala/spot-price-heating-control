@@ -35,7 +35,7 @@ class HourPrices:
     # Get hour prices for today from curl -X GET "https://api.spot-hinta.fi/Today" -H  "accept: application/json"
     def __set_hour_prices(self, tomorrow=False):
         if tomorrow:
-            url = "https://api.spot-hinta.fi/Tomorrow"
+            url = "https://api.spot-hinta.fi/DayForward"
         else:
             url = "https://api.spot-hinta.fi/Today"
 
