@@ -6,6 +6,7 @@ import schedule
 import time
 from itertools import groupby
 from operator import itemgetter
+import RPi.GPIO as GPIO
 
 HALF_POWER_HOURS = 8
 ZERO_POWER_HOURS = 6
@@ -97,6 +98,7 @@ class HeatControl:
         self.highest_prices = []
         self.lowest_prices = []
         self.hour_prices = []
+        self.initialize_gpio()
 
         self.new_day(False)
 
@@ -127,14 +129,18 @@ class HeatControl:
         self.hour_prices.sort(key=lambda x: x["Rank"])
         for hour in self.hour_prices:
             print(str(hour["Hour"]) + " " + str(hour["PriceNoTax"]))
-
-    def set_rasbperry_pi_gpio_pin(pin_number, state):
-        import RPi.GPIO as GPIO
-
-        GPIO.setmode(GPIO.BCM)
-        GPIO.setup(pin_number, GPIO.OUT)
-        GPIO.output(pin_number, state)
+    
+    def initialize_gpio(self):
         GPIO.cleanup()
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setup(GPIO_HALF_POWER, GPIO.OUT)
+        GPIO.setup(GPIO_ZERO_POWER, GPIO.OUT)
+        GPIO.output(GPIO_HALF_POWER, False)
+        GPIO.output(GPIO_ZERO_POWER, False)
+
+    def set_rasbperry_pi_gpio_pin(self, pin_number, state):
+
+        GPIO.output(pin_number, state)
 
     def set_heat_50_percent(self):
         self.set_rasbperry_pi_gpio_pin(GPIO_HALF_POWER , True)
