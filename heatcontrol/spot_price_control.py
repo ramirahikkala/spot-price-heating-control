@@ -1,3 +1,4 @@
+import sys
 import json
 import requests
 import datetime
@@ -224,11 +225,16 @@ class HeatControl:
             print(str(datetime.datetime.now()) + ": Heat on")
 
 def main():
-    ht = HeatControl()
-    # Keep the program running
-    while True:
-        schedule.run_pending()
-        time.sleep(1)
+        
+        ht = HeatControl()
+        # Keep the program running
+        while True:
+            try:
+                schedule.run_pending()
+                time.sleep(1)
+            except:
+                ht.set_heat_on()
+                print("Unexpected error:", sys.exc_info()[0])
 
 if __name__ == "__main__":
     main()
