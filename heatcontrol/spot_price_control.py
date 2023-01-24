@@ -17,6 +17,9 @@ ULTIMATE_HIGHEST_PRICE = 0.35
 # Ultimate maximum number of zero power hours
 SAFE_ZERO_POWER_HOURS = 12
 
+GPIO_HALF_POWER = 14
+GPIO_ZERO_POWER = 15
+
 class HourPrices:
     def __init__(self, tomorrow=False):
 
@@ -134,16 +137,16 @@ class HeatControl:
         GPIO.cleanup()
 
     def set_heat_50_percent(self):
-        self.set_rasbperry_pi_gpio_pin(17, True)
-        self.set_rasbperry_pi_gpio_pin(27, False)
+        self.set_rasbperry_pi_gpio_pin(GPIO_HALF_POWER , True)
+        self.set_rasbperry_pi_gpio_pin(GPIO_ZERO_POWER , False)        
 
-    def set_heat_100_percent(self):
-        self.set_rasbperry_pi_gpio_pin(17, True)
-        self.set_rasbperry_pi_gpio_pin(27, True)
+    def set_heat_off(self):
+        self.set_rasbperry_pi_gpio_pin(GPIO_HALF_POWER , False)
+        self.set_rasbperry_pi_gpio_pin(GPIO_ZERO_POWER , True)        
 
     def set_heat_on(self):
-        self.set_rasbperry_pi_gpio_pin(17, False)
-        self.set_rasbperry_pi_gpio_pin(27, False)
+        self.set_rasbperry_pi_gpio_pin(GPIO_HALF_POWER, False)
+        self.set_rasbperry_pi_gpio_pin(GPIO_HALF_POWER, False)
     
     def get_number_of_consecutive_zero_power_hours(self, hour):
         
@@ -216,17 +219,15 @@ class HeatControl:
                 reset_heat = False
                 break
 
-        # Set heat on 100 % if we are on ZeroPowerHours
-
         for hour in self.ZeroPowerHours:
             if hour["Hour"] == datetime.datetime.now().hour:
-                # self.set_heat_100_percent()
+                self.set_heat_off()
                 print(str(datetime.datetime.now()) + ": Zero power")
                 reset_heat = False
                 break
 
         if reset_heat:
-            # self.set_heat_on()
+            self.set_heat_on()
             print(str(datetime.datetime.now()) + ": Heat on")
 
 def main():
