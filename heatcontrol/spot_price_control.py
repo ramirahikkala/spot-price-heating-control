@@ -220,7 +220,7 @@ class HeatControl:
 
         for hour in self.HalfPowerHours:
             if hour["Hour"] == datetime.datetime.now().hour:
-                # self.set_heat_50_percent()
+                self.set_heat_50_percent()
                 print(str(datetime.datetime.now()) + ": Half power")
                 reset_heat = False
                 break
@@ -247,6 +247,7 @@ def main():
             except:
                 ht.set_heat_on()
                 print("Unexpected error:", sys.exc_info()[0])
+                raise
 
 if __name__ == "__main__":
     main()
