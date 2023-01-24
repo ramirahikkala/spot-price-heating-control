@@ -1,16 +1,21 @@
 [tool.poetry]
 name = "heatcontrol"
-version = "0.1.0"
+version = "0.2.4"
 description = ""
-authors = ["Rami Rahikkala <rami.rahikkala@vincit.fi>"]
+authors = ["Rami Rahikkala <rami.rahikkala@gmail.fi>"]
 readme = "README.md"
+packages = [{include = "heatcontrol"}]
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "^3.9"
 requests = "^2.28.2"
 schedule = "^1.1.0"
+rpi-gpio = "^0.7.1"
 
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+spot_price_control = 'heatcontrol:main'
