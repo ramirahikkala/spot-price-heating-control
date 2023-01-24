@@ -18,19 +18,23 @@ ULTIMATE_HIGHEST_PRICE = 0.35
 SAFE_ZERO_POWER_HOURS = 12
 
 class HourPrices:
-    def __init__(self):
+    def __init__(self, tomorrow=False):
 
         self.hour_prices = None
 
         while self.hour_prices == None:
-            self.hour_prices = self.__set_hour_prices()
+            self.hour_prices = self.__set_hour_prices(tomorrow)
             # sleep for 1 hour if hour prices are not available
             if self.hour_prices == None:
                 time.sleep(3600)
 
     # Get hour prices for today from curl -X GET "https://api.spot-hinta.fi/Today" -H  "accept: application/json"
-    def __set_hour_prices(self):
-        url = "https://api.spot-hinta.fi/Today"
+    def __set_hour_prices(self, tomorrow=False):
+        if tomorrow:
+            url = "https://api.spot-hinta.fi/Tomorrow"
+        else:
+            url = "https://api.spot-hinta.fi/Today"
+
         response = requests.get(url)
         # check if the response code is ok (200)
         if response.status_code != 200:
@@ -91,19 +95,19 @@ class HeatControl:
         self.lowest_prices = []
         self.hour_prices = []
 
-        self.new_day()
+        self.new_day(False)
 
         self.set_heat()
 
         # Schedule set_heat() to run beginning of every hour
         schedule.every().hour.at(":00").do(self.set_heat)
 
-        # schedule set_prices_for_today() to run every day at 00:00
-        schedule.every().day.at("00:00").do(self.new_day)
+        # schedule getting prices for tomorrow at last hour of today
+        schedule.every().day.at("23:55").do(self.new_day)
 
-    def new_day(self):
+    def new_day(self, tomorrow=True):
 
-        self.set_prices_for_today()
+        self.set_prices_for_today(tomorrow)
 
         # Print half power hours
         print("Half power hours:")
@@ -164,9 +168,10 @@ class HeatControl:
 
         return max_consecutive(hours)
 
-    def set_prices_for_today(self):
+    def set_prices_for_today(self, tomorrow=False):
 
-        self.hour_prices = HourPrices().hour_prices
+
+        self.hour_prices = HourPrices(tomorrow).hour_prices
 
         self.hour_prices.sort(key=lambda x: x["Rank"], reverse=True)
 
