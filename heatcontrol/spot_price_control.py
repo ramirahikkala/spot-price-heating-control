@@ -4,9 +4,13 @@ import requests
 import datetime
 import schedule
 import time
-from itertools import groupby
-from operator import itemgetter
-import RPi.GPIO as GPIO
+
+try:
+    import RPi.GPIO as GPIO
+except RuntimeError as e:
+    if e.args[0] == "This module can only be run on a Raspberry Pi!":
+        print("RPi.GPIO not found, using dummy GPIO")
+        import Mock.GPIO as GPIO
 
 HALF_POWER_HOURS = 8
 ZERO_POWER_HOURS = 6

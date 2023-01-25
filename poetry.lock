@@ -123,6 +123,18 @@ files = [
 ]
 
 [[package]]
+name = "mock-gpio"
+version = "0.1.8"
+description = "Mock Library for RPi.GPIO"
+category = "main"
+optional = false
+python-versions = "*"
+files = [
+    {file = "Mock.GPIO-0.1.8-py3-none-any.whl", hash = "sha256:1fe27652ccfa580081b903707274f761c72177abae79f015774ee4009f50afe6"},
+    {file = "Mock.GPIO-0.1.8.tar.gz", hash = "sha256:f66b270da2980e3f234e1d45395aa3147bd9bd25d97f2ff404c6dbe09ee8634f"},
+]
+
+[[package]]
 name = "requests"
 version = "2.28.2"
 description = "Python HTTP for Humans."
@@ -191,5 +203,5 @@ socks = ["PySocks (>=1.5.6,!=1.5.7,<2.0)"]
 
 [metadata]
 lock-version = "2.0"
-python-versions = "^3.10"
-content-hash = "0d42d62bce6fa0aceb3cfd05ad60c37cec1db86312e9096c29ba19f3eac0b8a0"
+python-versions = "^3.9"
+content-hash = "58a1b1ed5670a4bbf2ad1d212204c07e8b2105ad38b8e6a724029800b4701d64"
