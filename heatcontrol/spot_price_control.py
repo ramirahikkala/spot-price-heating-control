@@ -4,6 +4,7 @@ import requests
 import datetime
 import schedule
 import time
+import sqlite3
 
 try:
     import RPi.GPIO as GPIO
@@ -24,6 +25,7 @@ SAFE_ZERO_POWER_HOURS = 12
 
 GPIO_HALF_POWER = 14
 GPIO_ZERO_POWER = 15
+
 
 class HourPrices:
     def __init__(self, tomorrow=False):
@@ -118,22 +120,40 @@ class HeatControl:
 
         self.set_prices_for_today(tomorrow)
 
-        # Print half power hours
-        print("Half power hours:")
-        for hour in self.HalfPowerHours:
-            print(str(hour["Hour"]) + " " + str(hour["PriceNoTax"]))
+        con = sqlite3.connect("dbdata/heatcontrol.sqlite")
+        cur = con.cursor()
 
-        # Print zero power hours
-        print("Zero power hours:")
-        for hour in self.ZeroPowerHours:
-            print(str(hour["Hour"]) + " " + str(hour["PriceNoTax"]))
+        # Create table if it does not exist
+        cur.execute(
+            "CREATE TABLE IF NOT EXISTS hour_prices (DateTime DATETIME,  Hour INTEGER, PriceNoTax REAL, Rank INTEGER, powerlevel CHAR(10), UNIQUE(DateTime) ON CONFLICT REPLACE)"
+        )
 
         # Print hour prices
         print("Hour prices:")
         self.hour_prices.sort(key=lambda x: x["Rank"])
         for hour in self.hour_prices:
-            print(str(hour["Hour"]) + " " + str(hour["PriceNoTax"]))
-    
+            powerlevel = "Normal"
+            if hour in self.HalfPowerHours:
+                powerlevel = "Half"
+            elif hour in self.ZeroPowerHours:
+                powerlevel = "Zero"
+
+            cur.execute(
+                "INSERT INTO hour_prices (DateTime, Hour, PriceNoTax, Rank, powerlevel) VALUES (?,?,?,?,?)",
+                (
+                    hour["DateTime"],
+                    hour["Hour"],
+                    hour["PriceNoTax"],
+                    hour["Rank"],
+                    powerlevel,
+                ),
+            )
+
+            print(str(hour["Hour"]) + " " + str(hour["PriceNoTax"]) + " " + powerlevel)
+
+        con.commit()
+        con.close()
+        
     def initialize_gpio(self):
         GPIO.cleanup()
         GPIO.setmode(GPIO.BCM)
@@ -147,32 +167,32 @@ class HeatControl:
         GPIO.output(pin_number, state)
 
     def set_heat_50_percent(self):
-        self.set_rasbperry_pi_gpio_pin(GPIO_HALF_POWER , True)
-        self.set_rasbperry_pi_gpio_pin(GPIO_ZERO_POWER , False)        
+        self.set_rasbperry_pi_gpio_pin(GPIO_HALF_POWER, True)
+        self.set_rasbperry_pi_gpio_pin(GPIO_ZERO_POWER, False)
 
     def set_heat_off(self):
-        self.set_rasbperry_pi_gpio_pin(GPIO_HALF_POWER , False)
-        self.set_rasbperry_pi_gpio_pin(GPIO_ZERO_POWER , True)        
+        self.set_rasbperry_pi_gpio_pin(GPIO_HALF_POWER, False)
+        self.set_rasbperry_pi_gpio_pin(GPIO_ZERO_POWER, True)
 
     def set_heat_on(self):
         self.set_rasbperry_pi_gpio_pin(GPIO_HALF_POWER, False)
         self.set_rasbperry_pi_gpio_pin(GPIO_HALF_POWER, False)
-    
+
     def get_number_of_consecutive_zero_power_hours(self, hour):
-        
+
         # Calculate number of consecutive hours
-        hours = [h['Hour'] for h in self.ZeroPowerHours]
+        hours = [h["Hour"] for h in self.ZeroPowerHours]
 
         # Add next hour to test if it is consecutive
-        hours.append(hour['Hour'])
-        
+        hours.append(hour["Hour"])
+
         hours.sort()
 
         def max_consecutive(numbers):
             max_count = 0
             current_count = 1
             for i in range(1, len(numbers)):
-                if numbers[i] == numbers[i-1] + 1:
+                if numbers[i] == numbers[i - 1] + 1:
                     current_count += 1
                 else:
                     max_count = max(max_count, current_count)
@@ -183,7 +203,6 @@ class HeatControl:
 
     def set_prices_for_today(self, tomorrow=False):
 
-
         self.hour_prices = HourPrices(tomorrow).hour_prices
 
         self.hour_prices.sort(key=lambda x: x["Rank"], reverse=True)
@@ -191,26 +210,28 @@ class HeatControl:
         self.ZeroPowerHours = []
         self.HalfPowerHours = []
         add_to_zero_power_hours = False
-        
+
         for hour in self.hour_prices:
 
             if len(self.ZeroPowerHours) < ZERO_POWER_HOURS:
-                
-                consecutive_hours = self.get_number_of_consecutive_zero_power_hours(hour)
+
+                consecutive_hours = self.get_number_of_consecutive_zero_power_hours(
+                    hour
+                )
 
                 if consecutive_hours <= MAX_CONSECUTIVE_ZERO_POWER_HOURS:
-                    add_to_zero_power_hours=True
+                    add_to_zero_power_hours = True
 
             # Add to ZeroPowerHours always if price is above ultimate max price
             if hour["PriceWithTax"] > ULTIMATE_HIGHEST_PRICE:
                 add_to_zero_power_hours = True
-            
+
             # Keep heating on if price is below ultimate min price
             if hour["PriceWithTax"] < ULTIMATE_LOWEST_PRICE:
                 continue
 
             if add_to_zero_power_hours:
-                
+
                 # Don't add more than SAFE_ZERO_POWER_HOURS
                 if len(self.ZeroPowerHours) < SAFE_ZERO_POWER_HOURS:
                     self.ZeroPowerHours.append(hour)
@@ -240,18 +261,20 @@ class HeatControl:
             self.set_heat_on()
             print(str(datetime.datetime.now()) + ": Heat on")
 
+
 def main():
-        
-        ht = HeatControl()
-        # Keep the program running
-        while True:
-            try:
-                schedule.run_pending()
-                time.sleep(1)
-            except:
-                ht.set_heat_on()
-                print("Unexpected error:", sys.exc_info()[0])
-                raise
+
+    ht = HeatControl()
+    # Keep the program running
+    while True:
+        try:
+            schedule.run_pending()
+            time.sleep(1)
+        except:
+            ht.set_heat_on()
+            print("Unexpected error:", sys.exc_info()[0])
+            raise
+
 
 if __name__ == "__main__":
     main()
