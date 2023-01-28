@@ -125,7 +125,7 @@ class HeatControl:
 
         # Create table if it does not exist
         cur.execute(
-            "CREATE TABLE IF NOT EXISTS hour_prices (DateTime DATETIME,  Hour INTEGER, PriceNoTax REAL, Rank INTEGER, powerlevel CHAR(10), UNIQUE(DateTime) ON CONFLICT REPLACE)"
+            "CREATE TABLE IF NOT EXISTS hour_prices (DateTime DATETIME,  Hour INTEGER, PriceNoTax REAL, Rank INTEGER, powerlevel CHAR(10), UNIQUE(DateTime, Hour) ON CONFLICT REPLACE)"
         )
 
         # Print hour prices
@@ -138,10 +138,15 @@ class HeatControl:
             elif hour in self.ZeroPowerHours:
                 powerlevel = "Zero"
 
+            # Extract date from DateTime
+            date = datetime.datetime.strptime(
+                hour["DateTime"], "%Y-%m-%dT%H:%M:%S%z"
+            ).date()
+
             cur.execute(
                 "INSERT INTO hour_prices (DateTime, Hour, PriceNoTax, Rank, powerlevel) VALUES (?,?,?,?,?)",
                 (
-                    hour["DateTime"],
+                    date,
                     hour["Hour"],
                     hour["PriceNoTax"],
                     hour["Rank"],
