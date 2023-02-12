@@ -70,7 +70,7 @@ class HourPrices:
 
     def get_lowest_prices(self, number_of_hours_to_get, number_of_hours_to_skip):
         hour_prices = self.hour_prices
-        hour_prices.sort(key=lambda x: x["Rank"])
+        hour_prices.sort(key=lambda x: x["Rank"])        
         return hour_prices[
             number_of_hours_to_skip : number_of_hours_to_skip + number_of_hours_to_get
         ]
@@ -125,7 +125,7 @@ class HeatControl:
 
         # Create table if it does not exist
         cur.execute(
-            "CREATE TABLE IF NOT EXISTS hour_prices (DateTime DATETIME,  Hour INTEGER, PriceNoTax REAL, Rank INTEGER, powerlevel CHAR(10), UNIQUE(DateTime, Hour) ON CONFLICT REPLACE)"
+            "CREATE TABLE IF NOT EXISTS hour_prices (DateTime DATETIME,  Hour INTEGER, PriceWithTax Real, PriceNoTax REAL, Rank INTEGER, powerlevel CHAR(10), UNIQUE(DateTime, Hour) ON CONFLICT REPLACE)"
         )
 
         # Print hour prices
@@ -144,17 +144,18 @@ class HeatControl:
             ).date()
 
             cur.execute(
-                "INSERT INTO hour_prices (DateTime, Hour, PriceNoTax, Rank, powerlevel) VALUES (?,?,?,?,?)",
+                "INSERT INTO hour_prices (DateTime, Hour, PriceWithTax, PriceNoTax, Rank, powerlevel) VALUES (?,?,?,?,?,?)",
                 (
                     date,
                     hour["Hour"],
+                    hour["PriceWithTax"],
                     hour["PriceNoTax"],
                     hour["Rank"],
                     powerlevel,
                 ),
             )
 
-            print(str(hour["Hour"]) + " " + str(hour["PriceNoTax"]) + " " + powerlevel)
+            print(str(hour["Hour"]) + " " + str(hour["PriceWithTax"]) + " " + powerlevel)
 
         con.commit()
         con.close()
