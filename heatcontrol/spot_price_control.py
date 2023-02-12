@@ -181,7 +181,7 @@ class HeatControl:
 
     def set_heat_on(self):
         self.set_rasbperry_pi_gpio_pin(GPIO_HALF_POWER, False)
-        self.set_rasbperry_pi_gpio_pin(GPIO_HALF_POWER, False)
+        self.set_rasbperry_pi_gpio_pin(GPIO_ZERO_POWER, False)
 
     def get_number_of_consecutive_zero_power_hours(self, hour):
 
