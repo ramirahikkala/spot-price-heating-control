@@ -23,8 +23,8 @@ ULTIMATE_HIGHEST_PRICE = 0.35
 # Ultimate maximum number of zero power hours
 SAFE_ZERO_POWER_HOURS = 15
 
-GPIO_HALF_POWER = 4
-GPIO_ZERO_POWER = 22
+GPIO_HALF_POWER = 22
+GPIO_ZERO_POWER = 4
 
 
 class HourPrices:
